@@ -1,58 +1,56 @@
 import com.diacht.ktest.compose.startTestUi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.example.helloworld.BuildConfig
-import kotlin.math.abs
-import kotlin.math.cbrt
-import kotlin.math.sqrt
+import java.net.URL
+import kotlin.math.ln
+import kotlin.math.pow
 
 
 fun seed(): String = "ivashchuk-v"
 
 fun labNumber() : Int = BuildConfig.LAB_NUMBER
 
-fun iCalculate(
-    x0: Int = -92,
-    x1: Int = -43,
-    x2: Int = -14,
-    x3: Int = 114,
-    x4: Int = 67
-): Double {
-    val s = abs(x0) + abs(x1) + abs(x2) + abs(x3) + abs(x4)
-    return cbrt(s.toDouble())
-}
-
-fun dCalculate(
-    x0: Double = 16.32,
-    x1: Double = -28.21,
-    x2: Double = -40.12,
-    x3: Double = 57.23
-): Double {
-    return sqrt(x0 * x1 * x2 * x3)
-}
-
-fun strCalculate(x0: String, x1: String): Int {
-    val n = x0.length
-    val half = n / 2
-    var res = 0
-
-    for (i in 0 until n) {
-        val a = x0[i]
-        if (a == 'T' || a == 'C') {
-            if (a != x1[i]) {
-                res += if (i >= half) 2 else 1
-            }
-        }
+suspend fun getNumberFromServer(message: String): Int {
+    return withContext(Dispatchers.IO) {
+        val url = URL("http://diacht.2vsoft.com/api/send-number?message=$message")
+        val connection = url.openConnection()
+        connection.connect()
+        val input = connection.getInputStream()
+        val buffer = ByteArray(128)
+        val bytesRead = input.read(buffer)
+        input.close()
+        String(buffer, 0, bytesRead).toInt()
     }
-    return res
 }
 
 
-fun main(args: Array<String>) {
-    println("Лабораторна робота №${labNumber()} користувача ${seed()}")
+// функція
+suspend fun serverCalc(strList: List<String>): Double = coroutineScope {
 
-    println("iCalculate() = ${iCalculate()}")
-    println("dCalculate() = ${dCalculate()}")
-    println("strCalculate() = ${strCalculate("ATCGTC", "ATGGTA")}")
+    val deferredValues = strList.map { str ->
+        async { getNumberFromServer(str) }
+    }
 
-    startTestUi(seed(), labNumber())
+    val values = deferredValues.awaitAll()
 
+    val sum = values.sumOf { x ->
+        x.toDouble().pow(3)
+    }
+
+    ln(sum)
+}
+
+
+fun main() = runBlocking {
+
+    val data = listOf("strList[0]", "strList[1]", "strList[2]", "strList[3]", "strList[4]", "strList[5]")
+
+    val result = serverCalc(data)
+
+    println("Result = $result")
 }
