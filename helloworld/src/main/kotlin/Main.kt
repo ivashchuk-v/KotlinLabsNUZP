@@ -30,7 +30,7 @@ suspend fun getNumberFromServer(message: String): Int {
 
 
 // функція
-suspend fun serverCalc(strList: List<String>): Double = coroutineScope {
+suspend fun serverDataCalculate(strList: List<String>): Double = coroutineScope {
 
     val deferredValues = strList.map { str ->
         async { getNumberFromServer(str) }
@@ -50,7 +50,7 @@ fun main() = runBlocking {
 
     val data = listOf("strList[0]", "strList[1]", "strList[2]", "strList[3]", "strList[4]", "strList[5]")
 
-    val result = serverCalc(data)
+    val result = serverDataCalculate(data)
 
     println("Result = $result")
 }
